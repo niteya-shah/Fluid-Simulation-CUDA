@@ -150,17 +150,17 @@ __device__ void color_field_lap(float *color_field_lap_val, const float *mass,
       *mass * 1 / (density_n[i] +  0.0000001f) * lap_WPoly6(h, mag, lap_WPoly6_const);
 }
 
-__global__ void calc_density(float *density,const float *r1,const float *neighbors,const float *mass,const float *h,const float *WPoly6_const)
+__global__ void calc_density(float *density,const float *r1,const int *neighbors,const float *mass,const float *h,const float *WPoly6_const)
 {
       float r_dash[3];
       const int i = threadIdx.x;
-      const int j = blockID.x
+      const int j = blockIdx.x;
       const int n = j * blockDim.x + i;
       r_dash[0] = r1[j] - r1[3 * neighbors[n]];
       r_dash[1] = r1[j + 1] - r1[3 * neighbors[n] + 1];
       r_dash[2] = r1[j + 2] - r1[3 * neighbors[n] + 2];
       const float mag = magnitude(r_dash);
-      density[i] = WPoly6(mag, h, WPoly6_const) * *mass;
+      density[n] = WPoly6(mag, h, WPoly6_const) * *mass;
 }
 
 __global__ void calc_forces(
@@ -272,7 +272,7 @@ v = np.zeros([const.num_particles,3]).astype(np.float32)
 plt.ion()
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-for iteration in range(30):
+for iteration in range(40):
     plt.xlim(-10,10)
     plt.ylim(-10, 10)
     ax.set_zlim(-10,10)
@@ -281,19 +281,16 @@ for iteration in range(30):
     plt.pause(0.000001)
     ax.cla()
     nn.fit(r1)
-    Density = [0] * const.num_particles
     neighbors = nn.kneighbors(r1, return_distance=False)
-    for i in range(const.num_particles):
-        r = r1[i].astype(np.float32)
-        r_dash = r1[neighbors[i]].flatten().astype(np.float32)
-        density = np.zeros([const.num_neighbhours]).astype(np.float32)
-        calc_density(drv.Out(density),drv.In(r), drv.In(r_dash),drv.In(neighbors),drv.In(const.mass) ,drv.In(const.h), drv.In(const.WPoly6_const),block=(const.num_neighbhours,1,1), grid=(1,1))
-        Density[i] = density.sum()
+    neighbors_dash = neighbors.flatten().astype(np.int32)
+    r_dash = r1.flatten().astype(np.float32)
+    density = np.zeros([const.num_particles,const.num_neighbhours]).flatten().astype(np.float32)
+    calc_density(drv.Out(density), drv.In(r_dash),drv.In(neighbors),drv.In(const.mass) ,drv.In(const.h), drv.In(const.WPoly6_const),block=(const.num_neighbhours,1,1), grid=(const.num_particles,1))
+    Density = density.reshape([const.num_particles, const.num_neighbhours]).sum(axis = 1)
     print("dens")
     force = np.zeros([const.num_particles,3]).astype(np.float32)
     color_field_lap_val = np.zeros([const.num_particles]).astype(np.float32)
     color_field_grad_val = np.zeros([const.num_particles,3]).astype(np.float32)
-    Density = np.array(Density).astype(np.float32)
     print("bfor force")
     for i in range(const.num_particles):
         force_temp = np.zeros([const.num_neighbhours,3]).flatten().astype(np.float32)
@@ -318,18 +315,3 @@ for iteration in range(30):
     print("final")
     r1 = r_dash.reshape(const.num_particles,3)
     v = v_n.reshape(const.num_particles,3)
-
-
-for i in range(const.num_particles):
-    r = r1[i].astype(np.float32)
-    r_dash = r1[neighbors[i]].flatten().astype(np.float32)
-    density = np.zeros([const.num_neighbhours]).astype(np.float32)
-    calc_density(drv.Out(density), drv.In(r_dash),drv.In(neighbors),drv.In(const.mass) ,drv.In(const.h), drv.In(const.WPoly6_const),block=(const.num_neighbhours,1,1), grid=(1,1))
-    Density[i] = density.sum()
-
-r1, neighbors ->  density
-
-r1 (10K, 3)
-neighbors (10k, 100)
-
-r = r[blockID.x + j] - r1[blockID.x * blockDim.x + threadIx.x]
