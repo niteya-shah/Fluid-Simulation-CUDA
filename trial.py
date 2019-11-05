@@ -286,26 +286,24 @@ for iteration in range(100):
     plt.pause(0.000001)
     ax.cla()
     nn.fit(r1)
-    neighbors = nn.kneighbors(r1, return_distance=False)
-    neighbors_dash = neighbors.flatten().astype(np.int32)
-    r_dash = r1.flatten().astype(np.float32)
-    density = np.zeros([const.num_particles,const.num_neighbhours]).flatten().astype(np.float32)
-    calc_density(drv.Out(density), drv.In(r_dash),drv.In(neighbors),drv.In(const.mass) ,drv.In(const.h), drv.In(const.WPoly6_const),block=(const.num_neighbhours,1,1), grid=(const.num_particles,1))
-    Density = density.reshape([const.num_particles, const.num_neighbhours]).sum(axis = 1)
 
+    neighbors = nn.kneighbors(r1, return_distance=False).flatten().astype(np.int32)
+    r_dash = r1.flatten().astype(np.float32)
+    v_n = v.flatten().astype(np.float32)
+    density = np.zeros([const.num_particles,const.num_neighbhours]).flatten().astype(np.float32)
     force = np.zeros([const.num_particles,const.num_neighbhours,3]).astype(np.float32)
     color_field_lap_val = np.zeros([const.num_particles, const.num_neighbhours]).astype(np.float32)
     color_field_grad_val = np.zeros([const.num_particles, const.num_neighbhours, 3]).astype(np.float32)
 
-    r_dash = r1.flatten().astype(np.float32)
-    v_n = v.flatten().astype(np.float32)
-    calc_forces(drv.Out(force), drv.Out(color_field_lap_val), drv.Out(color_field_grad_val), drv.In(r1),  drv.In(Density), drv.In(v_n), drv.In(neighbors_dash) ,drv.In(const.h), drv.In(const.eta), drv.In(const.mass), drv.In(const.rest_density), drv.In(const.k),  drv.In(const.grad_WPoly6_const),drv.In(const.lap_WPoly6_const),drv.In(const.Wspiky_const),drv.In(const.grad_Wspiky_const),drv.In(const.Wviscosity_const),drv.In(const.lap_Wviscosity_const), block=(const.num_neighbhours,1,1), grid=(const.num_particles,1))
+    calc_density(drv.Out(density), drv.In(r_dash),drv.In(neighbors),drv.In(const.mass) ,drv.In(const.h), drv.In(const.WPoly6_const),block=(const.num_neighbhours,1,1), grid=(const.num_particles,1))
+    Density = density.reshape([const.num_particles, const.num_neighbhours]).sum(axis = 1)
+
+
+    calc_forces(drv.Out(force), drv.Out(color_field_lap_val), drv.Out(color_field_grad_val), drv.In(r_dash),  drv.In(Density), drv.In(v_n), drv.In(neighbors) ,drv.In(const.h), drv.In(const.eta), drv.In(const.mass), drv.In(const.rest_density), drv.In(const.k),  drv.In(const.grad_WPoly6_const),drv.In(const.lap_WPoly6_const),drv.In(const.Wspiky_const),drv.In(const.grad_Wspiky_const),drv.In(const.Wviscosity_const),drv.In(const.lap_Wviscosity_const), block=(const.num_neighbhours,1,1), grid=(const.num_particles,1))
     force = force.reshape([const.num_particles, const.num_neighbhours, 3]).sum(axis = 1)
     color_field_grad_val = color_field_grad_val.reshape([const.num_particles, const.num_neighbhours, 3]).sum(axis = 1)
     color_field_lap_val = color_field_lap_val.reshape([const.num_particles, const.num_neighbhours]).sum(axis = 1)
 
-    r_dash = r1.flatten().astype(np.float32)
-    v_n = v.flatten().astype(np.float32)
     force = force.flatten().astype(np.float32)
     color_field_grad_val = color_field_grad_val.flatten().astype(np.float32)
 
