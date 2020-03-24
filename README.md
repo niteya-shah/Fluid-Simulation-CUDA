@@ -37,3 +37,9 @@ rather than by solving linear systems of equations
 ## Results
 
 <img src="https://github.com/niteya-shah/Fluid-Simulation-CUDA/blob/master/Results/result.png">
+
+## How to run
+
+```Terminal
+!python3 src/Simulate.py
+```
